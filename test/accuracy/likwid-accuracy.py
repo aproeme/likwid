@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os, sys, os.path
 import re
@@ -12,10 +12,10 @@ import glob
 import statistics
 
 bench_plain = "./likwid-bench-plain"
-bench_marker = "/home/hpc/unrz/unrz139/Apps-arm/bin/likwid-bench"
+bench_marker = "./likwid-bench-marker"
 bench_papi = "./likwid-bench-papi"
-perfctr = "/home/hpc/unrz/unrz139/Apps-arm/bin/likwid-perfctr"
-topology = "/home/hpc/unrz/unrz139/Apps-arm/bin/likwid-topology"
+perfctr = "../../likwid-perfctr"
+topology = "../../likwid-topology"
 topology_name = re.compile("^CPU name:\s+(.*)")
 topology_stepping = re.compile("^CPU stepping:\s+(\d*)")
 topology_type = re.compile("^CPU type:\s+(.*)")
@@ -55,32 +55,32 @@ marker_set = {}
 papi_set = {}
 
 if not os.path.exists(bench_marker):
-    print "Please run make before using likwid-accuracy.py"
+    print("Please run make before using likwid-accuracy.py")
     sys.exit(1)
 if not os.path.exists(perfctr):
-    print "Cannot find likwid-perfctr"
+    print("Cannot find likwid-perfctr")
     sys.exit(1)
 
 
 def usage():
-    print "Execute and evaluate accuracy tests for LIKWID with likwid-bench and likwid-perfctr"
+    print("Execute and evaluate accuracy tests for LIKWID with likwid-bench and likwid-perfctr")
     print
-    print "-h/--help:\tPrint this help text"
-    print "-s/--sets:\tSpecifiy testgroups (comma separated). Can also be set in SET.txt"
-#    print "--wiki:\t\tBesides testing write out results in Google code wiki syntax"
-#    print "--only_wiki:\tDo not run benchmarks, read results from file and write out results in Google code wiki syntax"
-    print "-c <nrThreads>:\tSet number of threads. The accuracy tool uses the E notation of likwid like E:N:<nrThreads>:1:2. Default is 1 thread."
-    print "Picture options:"
-    print "--pgf:\t\tCreate TeX document for each test with PGFPlot"
-    print "--gnuplot:\tCreate GNUPlot script for each test"
-    print "--grace:\tCreate Grace script that can be evaluated with gracebat"
-    print "--script:\tActivate recording of commands in a bash script"
-    print "--scriptname:\tRecord commands to create pictures in file (default: %s)" % (os.path.join(destfolder,scriptfilename))
+    print("-h/--help:\tPrint this help text")
+    print("-s/--sets:\tSpecify testgroups (comma separated). Can also be set in SET.txt")
+#    print("--wiki:\t\tBesides testing write out results in Google code wiki syntax")
+#    print("--only_wiki:\tDo not run benchmarks, read results from file and write out results in Google code wiki syntax")
+    print("-c <nrThreads>:\tSet number of threads. The accuracy tool uses the E notation of likwid like E:N:<nrThreads>:1:2. Default is 1 thread.")
+    print("Picture options:")
+    print("--pgf:\t\tCreate TeX document for each test with PGFPlot")
+    print("--gnuplot:\tCreate GNUPlot script for each test")
+    print("--grace:\tCreate Grace script that can be evaluated with gracebat")
+    print("--script:\tActivate recording of commands in a bash script")
+    print("--scriptname:\tRecord commands to create pictures in file (default: %s)" % (os.path.join(destfolder,scriptfilename)))
 
 
 def get_groups():
     groups = {}
-    p = subprocess.Popen(perfctr+" -a", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(perfctr+" -a", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
     p.wait()
     if p.returncode != 0:
         return groups
@@ -121,7 +121,7 @@ def get_test_groups(groupdict):
 
 def get_avail_tests():
     tests = []
-    p = subprocess.Popen(bench_marker+" -a", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(bench_marker+" -a", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
     p.wait()
     if p.returncode != 0:
         return tests
@@ -136,13 +136,13 @@ def write_topology(path):
     try:
         f = open(os.path.join(path, topology_outputfile),"w")
     except:
-        print "Cannot write topology file %s" % (os.path.join(path, topology_outputfile),)
+        print("Cannot write topology file %s" % (os.path.join(path, topology_outputfile),))
         return
-    p = subprocess.Popen(topology, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(topology, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
     p.wait()
     if p.returncode != 0:
         return
-    f.write(p.stdout.read())
+    f.write(str(p.stdout.read()))
     f.close()
 
 def approx(in1, in2):
@@ -160,13 +160,13 @@ def legend(file1, file2):
         input1 = f.read().strip().split("\n")
         f.close()
     except:
-        print "Cannot open file "+file1
+        print("Cannot open file "+file1)
     try:
         f=open(file2,"r")
         input2 = f.read().strip().split("\n")
         f.close()
     except:
-        print "Cannot open file "+file2
+        print("Cannot open file "+file2)
     if len(input1) == 0 and len(input2) == 0:
         return "no"
     for line in input1:
@@ -184,14 +184,14 @@ def legend(file1, file2):
 
 def write_pgf(group, test, plain_file, marker_file, scale=0.0,papi_file=None, execute=False, script=None):
     printgrp = group
-    if translate_group.has_key(group):
+    if group in translate_group:
         printgrp = translate_group[group]
     filename = os.path.join(destfolder,printgrp+"_"+test+".tex")
     sizelist = []
     sizeindex = []
     lentry = "north east"
     if legend(plain_file, marker_file) == "so":
-        lentry = "south east"
+        lentry = "south west"
     for i,variant in enumerate(test_set[group][test]["variants"]):
         sizelist.append(variant)
         sizeindex.append(str((i+0.5)*test_set[group][test]["RUNS"]))
@@ -219,10 +219,10 @@ def write_pgf(group, test, plain_file, marker_file, scale=0.0,papi_file=None, ex
     fp.close()
     if execute:
         cmd = "cd %s && pdflatex %s && cd -" % (os.path.dirname(filename), os.path.basename(filename),)
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
         p.wait()
         if p.returncode != 0:
-            print p.stdout.read()
+            print(p.stdout.read())
         p.stdout.close()
     if script:
         script.write("pdflatex %s\n" % (os.path.basename(filename),))
@@ -230,7 +230,7 @@ def write_pgf(group, test, plain_file, marker_file, scale=0.0,papi_file=None, ex
 
 def write_gnuplot(group, test, plain_file, marker_file, scale = 1.0, papi_file=None, execute=False, script=None):
     printgrp = group
-    if translate_group.has_key(group):
+    if group in translate_group:
         printgrp = translate_group[group]
     filename = os.path.join(destfolder,printgrp+"_"+test+".plot")
     fp = open(filename,'w')
@@ -261,11 +261,11 @@ def write_gnuplot(group, test, plain_file, marker_file, scale = 1.0, papi_file=N
     fp.close()
     if execute:
         cmd = "cd %s && gnuplot %s && cd -" % (os.path.dirname(filename), os.path.basename(filename),)
-        print cmd
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(cmd)
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
         p.wait()
         if p.returncode != 0:
-            print p.stdout.read()
+            print(p.stdout.read())
         p.stdout.close()
     if script:
         script.write("gnuplot %s\n" % (os.path.basename(filename),))
@@ -273,7 +273,7 @@ def write_gnuplot(group, test, plain_file, marker_file, scale = 1.0, papi_file=N
 
 def write_grace(group, test, plain_file, correct_file, marker_file, papi_file=None, execute=False, script=None):
     printgrp = group
-    if translate_group.has_key(group):
+    if group in translate_group:
         printgrp = translate_group[group]
     filename = os.path.join(destfolder,printgrp+"_"+test+".bat")
     agrname = os.path.join(destfolder,printgrp+"_"+test+".agr")
@@ -362,10 +362,10 @@ def write_grace(group, test, plain_file, correct_file, marker_file, papi_file=No
     fp.close()
     if execute:
         cmd = "cd %s && gracebat %s -param %s %s && cd -" % (os.path.dirname(filename), cmd_options, os.path.basename(filename),out_options,)
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
         p.wait()
         if p.returncode != 0:
-            print p.stdout.read()
+            print(p.stdout.read())
         p.stdout.close()
     if script:
         script.write("gracebat %s -param %s %s\n" % (cmd_options, os.path.basename(filename),out_options,))
@@ -414,7 +414,7 @@ def get_variants(start, end, step):
 try:
     opts, args = getopt.getopt(sys.argv[1:], "hs:c:", ["help", "sets=","script","scriptname=","wiki","only_wiki=","pgf","gnuplot","grace","papi"])
 except getopt.GetoptError as err:
-    print str(err)
+    print(str(err))
     usage()
     sys.exit(2)
 
@@ -437,7 +437,7 @@ for o, a in opts:
         try:
             nrThreads = int(a)
         except:
-            print "Argument to -c not valid. Must be a number"
+            print("Argument to -c not valid. Must be a number")
             sys.exit(1)
     if o == "--pgf":
         out_pgf = True
@@ -453,10 +453,10 @@ for o, a in opts:
         scriptfilename = a
 
 if len(sets) == 0 and not os.path.exists(testlist):
-    print "Cannot find file %s containing list of testgroups" % (testlist,)
+    print("Cannot find file %s containing list of testgroups" % (testlist,))
     sys.exit(1)
 if not os.path.exists(testfolder):
-    print "Cannot find folder %s containing the testgroups" % (testfolder,)
+    print("Cannot find folder %s containing the testgroups" % (testfolder,))
     sys.exit(1)
 
 
@@ -510,7 +510,7 @@ for line in sets:
             if testline.startswith("VARIANT") and test:
                 linelist = re.split("\s+",testline);
                 variant = linelist[1]
-                if not test_set[groupname][test].has_key("variants"):
+                if "variants" not in test_set[groupname][test]:
                     test_set[groupname][test]["variants"] = []
                 test_set[groupname][test][variant] = linelist[2]
                 test_set[groupname][test]["variants"].append(linelist[1])
@@ -523,7 +523,7 @@ for line in sets:
                 start = linelist[1]
                 end = linelist[2]
                 step = linelist[3]
-                if not test_set[groupname][test].has_key("variants"):
+                if "variants" not in  test_set[groupname][test]:
                     test_set[groupname][test]["variants"] = []
                 variants = get_variants(start, end, step)
                 for variant in variants:
@@ -537,7 +537,7 @@ for line in sets:
 
 
 if len(test_set.keys()) == 0:
-    print "Cannot find any group in %s" % (testlist)
+    print("Cannot find any group in %s" % (testlist))
     sys.exit(1)
 
 if not os.path.exists(resultfolder):
@@ -564,7 +564,7 @@ if not only_wiki:
         for test in test_set[group].keys():
             if test.startswith("REGEX"): continue
             if test not in avail_tests:
-                print "Skip Group %s Test %s" % (group, test,)
+                print("Skip Group %s Test %s" % (group, test,))
                 continue
             filebase = "%s_%s" % (group, test)
 
@@ -590,17 +590,17 @@ if not only_wiki:
                 file_papi = None
                 raw_papi = None
             counter = 1
-            print "Group %s Test %s" % (group, test,)
+            print("Group %s Test %s" % (group, test,))
             for size in test_set[group][test]["variants"]:
                 if size.startswith("RUNS"): continue
-                print "Size "+size+": ",
+                print("Size "+size+": ", end="")
                 bench_options = "-t %s -w N:%s:%d" % (test, size, nrThreads)
                 for i in range(0,test_set[group][test]["RUNS"]):
-                    print "*",
+                    print("*", end=" ")
                     sys.stdout.flush()
                     # Run with LIKWID instrumented likwid-bench and likwid-perfctr
                     rawfp_likwid.write(perfctr_string+" "+bench_marker+" "+bench_options+"\n")
-                    p = subprocess.Popen(perfctr_string+" "+bench_marker+" "+bench_options, shell=True, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,executable="/bin/bash")
+                    p = subprocess.Popen(perfctr_string+" "+bench_marker+" "+bench_options, shell=True, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,executable="/bin/bash", encoding="utf-8")
                     stdout = ""
                     try:
                         p.wait()

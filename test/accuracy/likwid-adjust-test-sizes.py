@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 
 import os, sys, os.path, re, subprocess
 
-topology_exec = "/home/hpc/unrz/unrz139/Apps-arm/bin/likwid-topology"
+topology_exec = "../../likwid-topology"
 topology_re_size = re.compile("^Size:\s+(.*)")
 re_size_unit = re.compile("(\d+)\s(\w+)")
 
@@ -12,7 +12,7 @@ cachesizes = []
 def get_caches():
     level = 0
     print("here")
-    p = subprocess.Popen(topology_exec, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(topology_exec, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
     p.wait()
     sout = p.stdout.read()
     if p.returncode != 0:
