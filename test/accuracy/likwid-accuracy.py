@@ -512,8 +512,9 @@ for line in sets:
                 variant = linelist[1]
                 if "variants" not in test_set[groupname][test]:
                     test_set[groupname][test]["variants"] = []
-                test_set[groupname][test][variant] = linelist[2]
-                test_set[groupname][test]["variants"].append(linelist[1])
+                test_set[groupname][test]["variants"].append(variant)
+                if len(linelist) > 2:    # optional specification of iterations for test variant
+                    test_set[groupname][test][variant] = linelist[2]
                 plain_set[groupname][test][variant] = []
                 corrected_set[groupname][test][variant] = []
                 marker_set[groupname][test][variant] = []
