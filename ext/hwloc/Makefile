@@ -61,22 +61,20 @@ endif
 
 CPPFLAGS := $(CPPFLAGS) $(DEFINES) $(INCLUDES)
 
-.NOTPARALLEL: all
-
-all: $(BUILD_DIR) $(OBJ) $(LIBHWLOC)
-
-$(BUILD_DIR):
-	@mkdir $(BUILD_DIR)
-
+all: $(LIBHWLOC)
 
 $(STATIC_LIBHWLOC): $(OBJ)
+	@echo "===>  CREATE STATIC LIB  $@"
 	$(Q)${AR} -cq $(LIBHWLOC) $(OBJ)
 
 $(SHARED_LIBHWLOC): $(OBJ)
-	$(Q)$(CC) $(DEBUG_FLAGS) $(LFLAGS) -Wl,-soname,$(LIBHWLOC).$(VERSION).$(RELEASE)  -Wall -shared -fPIC -o $(LIBHWLOC) $(OBJ) $(LIBS) $(RPATHS)
+	@echo "===>  CREATE SHARED LIB  $@"
+	$(Q)$(CC) $(DEBUG_FLAGS) $(LFLAGS) -Wl,-soname,$(LIBHWLOC).$(VERSION).$(RELEASE),--no-undefined -Wall -shared -fPIC -o $(LIBHWLOC) $^ $(LIBS) $(RPATHS)
 
 #PATTERN RULES
 $(BUILD_DIR)/%.o:  %.c
+	@echo "===>  COMPILE  $@"
+	@mkdir -p $(BUILD_DIR)
 	$(Q)$(CC) -c $(DEBUG_FLAGS) $(CFLAGS) $(CPPFLAGS) $< -o $@
 	$(Q)$(CC) $(DEBUG_FLAGS) $(CPPFLAGS) -MT $(@:.d=.o) -MM  $< > $(BUILD_DIR)/$*.d
 
@@ -87,10 +85,11 @@ endif
 .PHONY: clean distclean
 
 clean:
+	@echo "===>  CLEAN HWLOC"
 	@rm -f $(TARGET) $(SHARED_LIBHWLOC) $(STATIC_LIBHWLOC) $(LIBHWLOC).$(VERSION).$(RELEASE) $(LIBHWLOC).$(VERSION)
 
 distclean: clean
-	@rm -f $(TARGET) $(SHARED_LIBHWLOC) $(STATIC_LIBHWLOC) $(LIBHWLOC).$(VERSION).$(RELEASE) $(LIBHWLOC).$(VERSION)
+	@echo "===>  DIST CLEAN HWLOC"
 	@rm -rf $(BUILD_DIR)
 
 

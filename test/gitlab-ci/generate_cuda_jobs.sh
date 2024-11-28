@@ -12,6 +12,7 @@ build-$PVER:
       LIKWID_COMPILER: "GCC"
       LIKWID_ACCESSMODE: "perf_event"
       SLURM_NODELIST: medusa
+      SLURM_CONSTRAINT: hwperf
       CUDA_MODULE: $VER
     script:
       - module load "\$CUDA_MODULE"
@@ -19,6 +20,7 @@ build-$PVER:
       - sed -e s+"ACCESSMODE = .*"+"ACCESSMODE=\$LIKWID_ACCESSMODE"+g -i config.mk
       - sed -e s+"COMPILER = .*"+"COMPILER=\$LIKWID_COMPILER"+g -i config.mk
       - sed -e s+"NVIDIA_INTERFACE = .*"+"NVIDIA_INTERFACE=true"+g -i config.mk
+      - sed -e s+"BUILD_SYSFEATURES = .*"+"BUILD_SYSFEATURES=true"+g -i config.mk
       - sed -e s+"BUILDDAEMON = .*"+"BUILDDAEMON=false"+g -i config.mk
       - sed -e s+"BUILDFREQ = .*"+"BUILDFREQ=false"+g -i config.mk
       - make
@@ -27,6 +29,9 @@ build-$PVER:
       - if [ -e likwid-setFreq ]; then rm likwid-setFreq; fi
       - export LD_LIBRARY_PATH=\$(pwd):\$LD_LIBRARY_PATH
       - ./likwid-topology
+      - ./likwid-perfctr -i
+      - ./likwid-pin -p
+      - ./likwid-sysfeatures -a
     tags:
       - testcluster
 

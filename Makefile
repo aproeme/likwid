@@ -54,7 +54,6 @@ LIBS      += -ldl
 
 #CONFIGURE BUILD SYSTEM
 BUILD_DIR  = ./$(COMPILER)
-Q         ?= @
 GENGROUPLOCK = .gengroup
 
 VPATH     = $(SRC_DIR)
@@ -200,24 +199,27 @@ endif
 
 CPPFLAGS := $(CPPFLAGS) $(DEFINES) $(INCLUDES)
 
+.PHONY: all
 ifeq ($(BUILDDAEMON),false)
-all: $(BUILD_DIR) $(PERFMONHEADERS) $(OBJ) $(TARGET_LIB) $(FORTRAN_IF)  $(PINLIB) $(L_APPS) $(L_HELPER) $(FREQ_TARGET) $(BENCH_TARGET) $(APPDAEMON_TARGET)
+all: $(TARGET_LIB) $(FORTRAN_IF) $(PINLIB) $(L_APPS) $(L_HELPER) $(FREQ_TARGET) $(BENCH_TARGET) $(APPDAEMON_TARGET)
 else
 ifeq ($(BUILDFREQ),false)
-all: $(BUILD_DIR) $(PERFMONHEADERS) $(OBJ) $(TARGET_LIB) $(FORTRAN_IF)  $(PINLIB) $(L_APPS) $(L_HELPER) $(DAEMON_TARGET) $(BENCH_TARGET) $(APPDAEMON_TARGET)
+all: $(TARGET_LIB) $(FORTRAN_IF) $(PINLIB) $(L_APPS) $(L_HELPER) $(DAEMON_TARGET) $(BENCH_TARGET) $(APPDAEMON_TARGET)
 else
 ifeq ($(CONTAINER_HELPER),false)
-all: $(BUILD_DIR) $(PERFMONHEADERS) $(OBJ) $(TARGET_LIB) $(FORTRAN_IF)  $(PINLIB) $(L_APPS) $(L_HELPER) $(DAEMON_TARGET) $(FREQ_TARGET) $(BENCH_TARGET) $(APPDAEMON_TARGET)
+all: $(TARGET_LIB) $(FORTRAN_IF) $(PINLIB) $(L_APPS) $(L_HELPER) $(DAEMON_TARGET) $(FREQ_TARGET) $(BENCH_TARGET) $(APPDAEMON_TARGET)
 else
-all: $(BUILD_DIR) $(PERFMONHEADERS) $(OBJ) $(TARGET_LIB) $(FORTRAN_IF)  $(PINLIB) $(L_APPS) $(L_HELPER) $(DAEMON_TARGET) $(FREQ_TARGET) $(BENCH_TARGET) $(APPDAEMON_TARGET) $(CONTAINER_HELPER_TARGET)
+all: $(TARGET_LIB) $(FORTRAN_IF) $(PINLIB) $(L_APPS) $(L_HELPER) $(DAEMON_TARGET) $(FREQ_TARGET) $(BENCH_TARGET) $(APPDAEMON_TARGET) $(CONTAINER_HELPER_TARGET)
 endif
 endif
 endif
 
+.PHONY: tags
 tags:
 	@echo "===>  GENERATE  TAGS"
 	$(Q)ctags -R
 
+.PHONY: docs
 docs:
 	@echo "===>  GENERATE DOXYGEN DOCS"
 	@cp doc/lua-doxygen.md doc/lua-doxygen.md.safe
@@ -261,9 +263,9 @@ $(L_HELPER):
 		-e s#'<GITCOMMIT>'#$(GITCOMMIT)#g \
 		$(SRC_DIR)/applications/$@ > $@
 
-$(STATIC_TARGET_LIB): $(BUILD_DIR) $(PERFMONHEADERS) $(OBJ) $(TARGET_HWLOC_LIB) $(TARGET_LUA_LIB)
+$(STATIC_TARGET_LIB): $(OBJ) $(TARGET_HWLOC_LIB) $(TARGET_LUA_LIB)
 	@echo "===>  CREATE STATIC LIB  $(TARGET_LIB)"
-	$(Q)${AR} -crs $(STATIC_TARGET_LIB) $(OBJ) $(TARGET_HWLOC_LIB) $(TARGET_LUA_LIB)
+	$(Q)$(AR) -crs $(STATIC_TARGET_LIB) $(OBJ) $(TARGET_HWLOC_LIB) $(TARGET_LUA_LIB)
 	@sed -e s#'@PREFIX@'#$(INSTALLED_PREFIX)#g \
 		-e s#'@NVIDIA_INTERFACE@'#$(NVIDIA_INTERFACE)#g \
 		-e s#'@FORTRAN_INTERFACE@'#$(FORTRAN_INTERFACE)#g \
@@ -271,9 +273,9 @@ $(STATIC_TARGET_LIB): $(BUILD_DIR) $(PERFMONHEADERS) $(OBJ) $(TARGET_HWLOC_LIB) 
 		-e s#'@BINPREFIX@'#$(INSTALLED_BINPREFIX)#g \
 		make/likwid-config.cmake > likwid-config.cmake
 
-$(DYNAMIC_TARGET_LIB): $(BUILD_DIR) $(PERFMONHEADERS) $(OBJ) $(TARGET_HWLOC_LIB) $(TARGET_LUA_LIB)
+$(DYNAMIC_TARGET_LIB): $(OBJ) $(TARGET_HWLOC_LIB) $(TARGET_LUA_LIB)
 	@echo "===>  CREATE SHARED LIB  $(TARGET_LIB)"
-	$(CC) $(DEBUG_FLAGS) $(SHARED_LFLAGS) -Wl,-soname,$(TARGET_LIB).$(VERSION).$(RELEASE) $(SHARED_CFLAGS) -o $(DYNAMIC_TARGET_LIB) $(OBJ) $(LIBS) $(TARGET_HWLOC_LIB) $(TARGET_LUA_LIB) $(RPATHS)
+	$(Q)$(CC) $(DEBUG_FLAGS) $(SHARED_LFLAGS) -Wl,-soname,$(TARGET_LIB).$(VERSION).$(RELEASE),--no-undefined $(SHARED_CFLAGS) -o $@ $^ $(LIBS) $(RPATHS)
 	@ln -sf $(TARGET_LIB) $(TARGET_LIB).$(VERSION).$(RELEASE)
 	@sed -e s#'@PREFIX@'#$(INSTALLED_PREFIX)#g \
 		-e s#'@NVIDIA_INTERFACE@'#$(NVIDIA_INTERFACE)#g \
@@ -285,29 +287,27 @@ $(DYNAMIC_TARGET_LIB): $(BUILD_DIR) $(PERFMONHEADERS) $(OBJ) $(TARGET_HWLOC_LIB)
 
 $(DAEMON_TARGET): $(SRC_DIR)/access-daemon/accessDaemon.c
 	@echo "===>  BUILD access daemon likwid-accessD"
-	$(Q)$(MAKE) -C  $(SRC_DIR)/access-daemon likwid-accessD
+	$(Q)$(MAKE) --no-print-directory -C  $(SRC_DIR)/access-daemon ../../likwid-accessD
 
 $(FREQ_TARGET): $(SRC_DIR)/access-daemon/setFreqDaemon.c
 	@echo "===>  BUILD frequency daemon likwid-setFreq"
-	$(Q)$(MAKE) -C  $(SRC_DIR)/access-daemon likwid-setFreq
+	$(Q)$(MAKE) --no-print-directory -C  $(SRC_DIR)/access-daemon ../../likwid-setFreq
 
-$(APPDAEMON_TARGET): $(SRC_DIR)/access-daemon/appDaemon.c $(TARGET_GOTCHA_LIB)
+$(APPDAEMON_TARGET): $(SRC_DIR)/access-daemon/appDaemon.c $(TARGET_LIB) $(TARGET_GOTCHA_LIB)
 	@echo "===>  BUILD application interface likwid-appDaemon.so"
-	$(Q)$(MAKE) -C  $(SRC_DIR)/access-daemon likwid-appDaemon.so
+	$(Q)$(MAKE) --no-print-directory -C  $(SRC_DIR)/access-daemon ../../likwid-appDaemon.so
 
 $(CONTAINER_HELPER_TARGET): $(SRC_DIR)/bridge/bridge.c
 	@echo "===>  BUILD container helper likwid-bridge"
 	$(Q)$(CC) $(DEBUG_FLAGS) $(CFLAGS) $(ANSI_CFLAGS) $(CPPFLAGS) $(SRC_DIR)/bridge/bridge.c -o $@
 
-$(BUILD_DIR):
-	@mkdir $(BUILD_DIR)
-
 $(PINLIB):
 	@echo "===>  CREATE LIB  $(PINLIB)"
-	$(Q)$(MAKE) -C src/pthread-overload/ $(PINLIB)
+	$(Q)$(MAKE) --no-print-directory -C src/pthread-overload/ ../../$(PINLIB)
 
 $(GENGROUPLOCK): $(foreach directory,$(shell ls $(GROUP_DIR)), $(wildcard $(GROUP_DIR)/$(directory)/*.txt))
 	@echo "===>  GENERATE GROUP HEADERS"
+	@mkdir -p $(BUILD_DIR)
 	$(Q)$(GEN_GROUPS) ./groups  $(BUILD_DIR) ./perl/templates
 	$(Q)touch $(GENGROUPLOCK)
 
@@ -317,73 +317,86 @@ $(FORTRAN_IF): $(SRC_DIR)/likwid.F90
 	@rm -f likwid.o
 
 ifeq ($(LUA_INTERNAL),true)
+# we usually don't change lua, so don't unconditionally rebuild it
+#.PHONY: $(TARGET_LUA_LIB)
 $(TARGET_LUA_LIB):
 	@echo "===>  ENTER  $(LUA_FOLDER)"
-	$(Q)$(MAKE) --no-print-directory -C $(LUA_FOLDER) $(MAKECMDGOALS)
+	$(Q)$(MAKE) --no-print-directory -C $(LUA_FOLDER)
 else
 $(TARGET_LUA_LIB):
 	@echo "===>  EXTERNAL LUA"
 endif
 
+# we usually don't change GOTCHA, so don't unconditionally rebuild it
+#.PHONY: $(TARGET_GOTCHA_LIB)
 $(TARGET_GOTCHA_LIB):
 	@echo "===>  ENTER  $(GOTCHA_FOLDER)"
-	$(Q)$(MAKE) --no-print-directory -C $(GOTCHA_FOLDER) $(MAKECMDGOALS)
+	$(Q)$(MAKE) --no-print-directory -C $(GOTCHA_FOLDER)
 
 ifeq ($(USE_INTERNAL_HWLOC),true)
+# we usually don't change hwloc, so don't unconditionally rebuild it
+#.PHONY: $(TARGET_HWLOC_LIB)
 $(TARGET_HWLOC_LIB):
 	@echo "===>  ENTER  $(HWLOC_FOLDER)"
-	$(Q)$(MAKE) --no-print-directory -C $(HWLOC_FOLDER) $(MAKECMDGOALS)
+	$(Q)$(MAKE) --no-print-directory -C $(HWLOC_FOLDER)
 else
 $(TARGET_HWLOC_LIB):
 	@echo "===>  EXTERNAL HWLOC"
 endif
 
-
-$(BENCH_TARGET):
+.PHONY: $(BENCH_TARGET)
+$(BENCH_TARGET): $(TARGET_LIB)
 	@echo "===>  ENTER  $(BENCH_FOLDER)"
-	$(Q)$(MAKE) --no-print-directory -C $(BENCH_FOLDER) $(MAKECMDGOALS)
+	$(Q)$(MAKE) --no-print-directory -C $(BENCH_FOLDER)
 
 #PATTERN RULES
-$(BUILD_DIR)/%.o:  %.c
+$(BUILD_DIR)/%.o: %.c $(PERFMONHEADERS)
 	@echo "===>  COMPILE  $@"
+	@mkdir -p $(BUILD_DIR)
 	$(Q)$(CC) -c $(DEBUG_FLAGS) $(CFLAGS) $(ANSI_CFLAGS) $(CPPFLAGS) $< -o $@
 	$(Q)$(CC) $(DEBUG_FLAGS) $(CPPFLAGS) -MT $(@:.d=.o) -MM  $< > $(BUILD_DIR)/$*.d
 
 $(BUILD_DIR)/rocmon_marker.o:  rocmon_marker.c
 	@echo "===>  COMPILE  $@"
+	@mkdir -p $(BUILD_DIR)
 	$(Q)$(CC) -c $(DEBUG_FLAGS) $(CFLAGS) $(ANSI_CFLAGS) $(CPPFLAGS) $< -o $@
 	$(Q)objcopy --redefine-sym HSA_VEN_AMD_AQLPROFILE_LEGACY_PM4_PACKET_SIZE=HSA_VEN_AMD_AQLPROFILE_LEGACY_PM4_PACKET_SIZE2 $@
 
 $(BUILD_DIR)/%.o:  %.cc
 	@echo "===>  COMPILE  $@"
+	@mkdir -p $(BUILD_DIR)
 	$(Q)$(CXX) -c $(DEBUG_FLAGS) $(CXXFLAGS) $(CPPFLAGS) $< -o $@
 	$(Q)$(CXX) $(DEBUG_FLAGS) $(CXXFLAGS) $(CPPFLAGS) -MT $(@:.d=.o) -MM  $< > $(BUILD_DIR)/$*.d
 
 $(BUILD_DIR)/%.o:  %.S
 	@echo "===>  COMPILE  $@"
+	@mkdir -p $(BUILD_DIR)
 	$(Q)$(CPP) $(CPPFLAGS) $< -o $@.tmp
 	$(Q)$(AS) $(ASFLAGS) $@.tmp -o $@
 	@rm $@.tmp
 
+# Keep generated headers. Because all sources (unfortunately) depend on the
+# PERFMONHEADERS, they all get rebuilt if a single source file is rebuilt.
+# That is because make usually cleans up those headers, which causes them to be
+# all regenerated every time, thus causing all .c files to be rebuilt.
+.PRECIOUS: $(PERFMONHEADERS)
 $(BUILD_DIR)/%.h:  $(SRC_DIR)/includes/%.txt
 	@echo "===>  GENERATE HEADER $@"
+	@mkdir -p $(BUILD_DIR)
 	$(Q)$(GEN_PMHEADER) $< $@
 
 ifeq ($(findstring $(MAKECMDGOALS),clean),)
 -include $(OBJ:.o=.d)
 endif
 
-.PHONY: clean distclean install uninstall help $(TARGET_LUA_LIB) $(TARGET_HWLOC_LIB) $(TARGET_GOTCHA_LIB) $(BENCH_TARGET)
-
-.PRECIOUS: $(BUILD_DIR)/%.pas
-
-.NOTPARALLEL:
-
-clean: $(TARGET_LUA_LIB) $(TARGET_HWLOC_LIB) $(TARGET_GOTCHA_LIB) $(BENCH_TARGET)
+.PHONY: clean
+clean:
 	@echo "===>  CLEAN"
-	@for APP in $(L_APPS) likwid-sysfeatures; do \
-		rm -f $$APP; \
-	done
+	$(Q)$(MAKE) --no-print-directory -C $(LUA_FOLDER) $(MAKECMDGOALS)
+	$(Q)$(MAKE) --no-print-directory -C $(HWLOC_FOLDER) $(MAKECMDGOALS)
+	$(Q)$(MAKE) --no-print-directory -C $(GOTCHA_FOLDER) $(MAKECMDGOALS)
+	$(Q)$(MAKE) --no-print-directory -C $(BENCH_FOLDER) $(MAKECMDGOALS)
+	@rm -f $(L_APPS) likwid-sysfeatures likwid-setFrequencies
 	@rm -f likwid.lua
 	@rm -f $(STATIC_TARGET_LIB)
 	@rm -f $(DYNAMIC_TARGET_LIB)*
@@ -392,26 +405,18 @@ clean: $(TARGET_LUA_LIB) $(TARGET_HWLOC_LIB) $(TARGET_GOTCHA_LIB) $(BENCH_TARGET
 	@rm -f $(FREQ_TARGET) $(DAEMON_TARGET) $(APPDAEMON_TARGET) $(CONTAINER_HELPER_TARGET)
 	@rm -f likwid-config.cmake
 
-distclean: $(TARGET_LUA_LIB) $(TARGET_HWLOC_LIB) $(TARGET_GOTCHA_LIB) $(BENCH_TARGET)
+.PHONY: distclean
+distclean: clean
 	@echo "===>  DIST CLEAN"
-	@for APP in $(L_APPS) likwid-sysfeatures; do \
-		rm -f $$APP; \
-	done
-	@rm -f likwid.lua
-	@rm -f $(STATIC_TARGET_LIB)
-	@rm -f $(DYNAMIC_TARGET_LIB)*
-	@rm -f $(PINLIB)*
-	@rm -f $(FORTRAN_IF_NAME)
-	@rm -f $(FREQ_TARGET) $(DAEMON_TARGET) $(APPDAEMON_TARGET) $(CONTAINER_HELPER_TARGET)
 	@rm -rf $(BUILD_DIR)
 	@if [ "$(LUA_INTERNAL)" = "true" ]; then rm -f $(TARGET_LUA_LIB).* $(shell basename $(TARGET_LUA_LIB)).*; fi
 	@if [ "$(USE_INTERNAL_HWLOC)" = "true" ]; then rm -f $(TARGET_HWLOC_LIB).* $(shell basename $(TARGET_HWLOC_LIB)).*; fi
 	@rm -f $(TARGET_GOTCHA_LIB).* $(shell basename $(TARGET_GOTCHA_LIB)).*
 	@rm -f $(GENGROUPLOCK)
-	@rm -f likwid-config.cmake
 	@rm -rf doc/html
 	@rm -f tags
 
+.PHONY: install_daemon move_daemon uninstall_daemon uninstall_daemon_moved
 ifeq ($(BUILDDAEMON),true)
 ifneq ($(COMPILER),MIC)
 install_daemon:
@@ -449,6 +454,7 @@ uninstall_daemon_moved:
 	@echo "===> No UNINSTALL of the access daemon"
 endif
 
+.PHONY: install_freq move_freq uninstall_freq uninstall_freq_moved
 ifeq ($(BUILDFREQ),true)
 ifneq ($(COMPILER),MIC)
 install_freq:
@@ -486,6 +492,7 @@ uninstall_freq_moved:
 	@echo "===> No UNINSTALL of setFrequencies tool"
 endif
 
+.PHONY: install_appdaemon move_appdaemon uninstall_appdaemon uninstall_appdaemon_moved
 ifeq ($(BUILDAPPDAEMON),true)
 install_appdaemon:
 	@echo "===> INSTALL application interface appDaemon to $(PREFIX)/lib/$(APPDAEMON_TARGET)"
@@ -512,6 +519,7 @@ uninstall_appdaemon_moved:
 	@echo "===> No UNINSTALL of the application interface appDaemon"
 endif
 
+.PHONY: install_container_helper move_container_helper uninstall_container_helper uninstall_container_helper_moved
 ifeq ($(CONTAINER_HELPER),true)
 install_container_helper: $(CONTAINER_HELPER_TARGET)
 	@echo "===> INSTALL container helper likwid-bridge to $(SBINPREFIX)/likwid-bridge"
@@ -538,6 +546,7 @@ uninstall_container_helper_moved:
 	@echo "===> No UNINSTALL of the container helper likwid-bridge"
 endif
 
+.PHONY: install
 install: install_daemon install_freq install_appdaemon install_container_helper
 	@echo "===> INSTALL applications to $(BINPREFIX)"
 	@mkdir -p $(BINPREFIX)
@@ -633,6 +642,7 @@ install: install_daemon install_freq install_appdaemon install_container_helper
 	@echo "===> INSTALL cmake to $(abspath $(PREFIX)/share/likwid)"
 	@install -m 644 $(PWD)/likwid-config.cmake $(PREFIX)/share/likwid
 
+.PHONY: move
 move: move_daemon move_freq move_appdaemon move_container_helper
 	@echo "===> MOVE applications from $(BINPREFIX) to $(INSTALLED_BINPREFIX)"
 	@mkdir -p $(INSTALLED_BINPREFIX)
@@ -702,6 +712,7 @@ move: move_daemon move_freq move_appdaemon move_container_helper
 		$(PREFIX)/share/likwid/likwid-config.cmake > $(INSTALLED_PREFIX)/share/likwid/likwid-config.cmake
 	@chmod 644 $(INSTALLED_PREFIX)/share/likwid/likwid-config.cmake
 
+.PHONY: uninstall
 uninstall: uninstall_daemon uninstall_freq uninstall_appdaemon uninstall_container_helper
 	@echo "===> REMOVING applications from $(PREFIX)/bin"
 	@rm -f $(addprefix $(BINPREFIX)/,$(addsuffix  .lua,$(L_APPS)))
@@ -738,6 +749,7 @@ uninstall: uninstall_daemon uninstall_freq uninstall_appdaemon uninstall_contain
 	@rm -rf $(PREFIX)/share/likwid/likwid-config.cmake
 	@rm -rf $(PREFIX)/share/likwid
 
+.PHONY: uninstall_moved
 uninstall_moved: uninstall_daemon_moved uninstall_freq_moved uninstall_appdaemon_moved uninstall_container_helper_moved
 	@echo "===> REMOVING applications from $(INSTALLED_PREFIX)/bin"
 	@rm -f $(addprefix $(INSTALLED_BINPREFIX)/,$(addsuffix  .lua,$(L_APPS)))
@@ -774,9 +786,9 @@ uninstall_moved: uninstall_daemon_moved uninstall_freq_moved uninstall_appdaemon
 	@rm -rf $(INSTALLED_PREFIX)/share/likwid/likwid-config.cmake
 	@rm -rf $(INSTALLED_PREFIX)/share/likwid
 
+.PHONY: local
 local: $(L_APPS) likwid.lua
 	@echo "===> Setting Lua scripts to run from current directory"
-	@PWD=$(shell pwd)
 	@for APP in $(L_APPS); do \
 		sed -i -e "s#<VERSION>/#$(VERSION)#g" -e "s#<DATE>#$(DATE)#g" -e "s#<RELEASE>#$(RELEASE)#g" -e "s#<GITCOMMIT>#$(GITCOMMIT)#g" -e "s#<MINOR>#$(MINOR)#g" -e "s#$(PREFIX)/bin/likwid-lua#$(PWD)/ext/lua/lua#" -e "s#$(PREFIX)/share/lua/?.lua#$(PWD)/?.lua#" -e "s#$(PREFIX)/bin/likwid-pin#$(PWD)/likwid-pin#" -e "s#$(PREFIX)/bin/likwid-perfctr#$(PWD)/likwid-perfctr#" -e "s#$(PREFIX)/lib#$(PWD)#" $$APP; \
 		chmod +x $$APP; \
@@ -799,11 +811,13 @@ local: $(L_APPS) likwid.lua
 	@if [ -e $(PINLIB) ]; then ln -sf $(PINLIB) $(PINLIB).$(VERSION).$(RELEASE); fi
 	@if [ -e $(CUDA_HOME)/extras/CUPTI/lib64 ]; then echo "export LD_LIBRARY_PATH=$(PWD):$(CUDA_HOME)/extras/CUPTI/lib64:$$LD_LIBRARY_PATH"; else echo "export LD_LIBRARY_PATH=$(PWD):$$LD_LIBRARY_PATH"; fi
 
+.PHONY: testit
 testit: test/test-likwidAPI.c
 	make -C test test-likwidAPI
 	test/test-likwidAPI
 	make -C test/executable_tests
 
+.PHONY: help
 help:
 	@echo "Help for building LIKWID:"
 	@echo
@@ -832,64 +846,13 @@ help:
 	@echo "If PREFIX and INSTALLED_PREFIX differ, you have to move anything after 'make install' to"
 	@echo "the INSTALLED_PREFIX. You can also use 'make move' which does the job for you."
 
-.ONESHELL:
-.PHONY: RPM
+.PHONY: rpm RPM
+rpm: RPM
 RPM: packaging/rpm/likwid.spec
-	@WORKSPACE="$${PWD}"
-	@SPECFILE="$${WORKSPACE}/packaging/rpm/likwid.spec"
-	# Setup RPM build tree
-	@eval $$(rpm --eval "ARCH='%{_arch}' RPMDIR='%{_rpmdir}' SOURCEDIR='%{_sourcedir}' SPECDIR='%{_specdir}' SRPMDIR='%{_srcrpmdir}' BUILDDIR='%{_builddir}'")
-	@mkdir --parents --verbose "$${RPMDIR}" "$${SOURCEDIR}" "$${SPECDIR}" "$${SRPMDIR}" "$${BUILDDIR}"
-	# Create source tarball
-	@COMMITISH="HEAD"
-	@VERS=$$(git describe --tags --abbrev=0 $${COMMITISH})
-	@VERS=$${VERS#v}
-	@VERS=$$(echo $$VERS | sed -e s#'-'#'_'#g)
-	@if [ "$${VERS}" = "" ]; then VERS="$(VERSION).$(RELEASE).$(MINOR)"; fi
-	@eval $$(rpmspec --query --queryformat "NAME='%{name}' VERSION='%{version}' RELEASE='%{release}' NVR='%{NVR}' NVRA='%{NVRA}'" --define="VERS $${VERS}" "$${SPECFILE}")
-	@PREFIX="$${NAME}-$${VERSION}"
-	@FORMAT="tar.gz"
-	@SRCFILE="$${SOURCEDIR}/$${PREFIX}.$${FORMAT}"
-	@git archive --verbose --format "$${FORMAT}" --prefix="$${PREFIX}/" --output="$${SRCFILE}" $${COMMITISH}
-	# Build RPM and SRPM
-	@rpmbuild -ba --define="VERS $${VERS}" --rmsource --clean "$${SPECFILE}"
-	# Report RPMs and SRPMs when in GitHub Workflow
-	@if [[ "$${GITHUB_ACTIONS}" == true ]]; then
-	@     RPMFILE="$${RPMDIR}/$${ARCH}/$${NVRA}.rpm"
-	@     SRPMFILE="$${SRPMDIR}/$${NVR}.src.rpm"
-	@     echo "RPM: $${RPMFILE}"
-	@     echo "SRPM: $${SRPMFILE}"
-	@     echo "::set-output name=SRPM::$${SRPMFILE}"
-	@     echo "::set-output name=RPM::$${RPMFILE}"
-	@fi
+	FROM_MAKEFILE=1 $(BASE_DIR)/packaging/rpm/package.sh
 
-.PHONY: DEB
+.PHONY: deb DEB
+deb: DEB
 DEB: packaging/deb/likwid.deb.control
-	@BASEDIR=$${PWD}
-	@WORKSPACE=$${PWD}/.dpkgbuild
-	@DEBIANDIR=$${WORKSPACE}/debian
-	@DEBIANBINDIR=$${WORKSPACE}/DEBIAN
-	@mkdir --parents --verbose $$WORKSPACE $$DEBIANBINDIR
-	@make PREFIX=$$WORKSPACE INSTALLED_PREFIX=$(PREFIX)
-	#@mkdir --parents --verbose $$DEBIANDIR
-	@CONTROLFILE="$${BASEDIR}/packaging/deb/likwid.deb.control"
-	@COMMITISH="HEAD"
-	@VERS=$$(git describe --tags --abbrev=0 $${COMMITISH})
-	@VERS=$${VERS#v}
-	@VERS=$$(echo $$VERS | sed -e s#'-'#'_'#g)
-	@ARCH=$$(uname -m)
-	@ARCH=$$(echo $$ARCH | sed -e s#'_'#'-'#g)
-	@if [ "$${ARCH}" = "x86-64" ]; then ARCH=amd64; fi
-	@if [ "$${VERS}" = "" ]; then VERS="$(VERSION).$(RELEASE).$(MINOR)"; fi
-	@PREFIX="$${NAME}-$${VERSION}_$${ARCH}"
-	@SIZE_BYTES=$$(du -bcs --exclude=.dpkgbuild "$$WORKSPACE"/ | awk '{print $$1}' | head -1 | sed -e 's#^0\+##')
-	@SIZE="$$(awk -v size="$$SIZE_BYTES" 'BEGIN {print (size/1024)+1}' | awk '{print int($$0)}')"
-	#@sed -e s#"{VERSION}"#"$$VERS"#g -e s#"{INSTALLED_SIZE}"#"$$SIZE"#g -e s#"{ARCH}"#"$$ARCH"#g $$CONTROLFILE > $${DEBIANDIR}/control
-	@sed -e s#"{VERSION}"#"$$VERS"#g -e s#"{INSTALLED_SIZE}"#"$$SIZE"#g -e s#"{ARCH}"#"$$ARCH"#g $$CONTROLFILE > $${DEBIANBINDIR}/control
-	@sudo make PREFIX=$$WORKSPACE INSTALLED_PREFIX=$(PREFIX) install
-	@DEB_FILE="likwid_$${VERS}_$${ARCH}.deb"
-	@dpkg-deb -b $${WORKSPACE} "$$DEB_FILE"
-	@sudo rm -r "$${WORKSPACE}"
-	@if [ "$${GITHUB_ACTIONS}" = "true" ]; then
-	@     echo "::set-output name=DEB::$${DEB_FILE}"
-	@fi
+	NAME=$(NAME) VERSION=$(VERSION) RELEASE=$(RELEASE) MINOR=$(MINOR) \
+		 PREFIX=$(PREFIX) FROM_MAKEFILE=1 $(BASE_DIR)/packaging/deb/package.sh

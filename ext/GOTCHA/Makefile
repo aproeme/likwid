@@ -69,22 +69,21 @@ CPPFLAGS := $(filter-out -D_GNU_SOURCE,$(CPPFLAGS))
 LIBGOTCHA = $(shell basename $(TARGET_GOTCHA_LIB))
 INTERPRETER = lua
 
-.NOTPARALLEL: all
-
-all: $(BUILD_DIR) $(OBJ)  $(LIBGOTCHA)
-
-$(BUILD_DIR):
-	@mkdir $(BUILD_DIR)
+all: $(LIBGOTCHA)
 
 $(STATIC_LIBGOTCHA): $(OBJ)
 	$(info "GOTCHA cannot be build statically in LIKWID")
+	#@echo "===>  CREATE STATIC LIB  $@"
 	#$(Q)${AR} -cq $(LIBGOTCHA) $(OBJ)
 
 $(SHARED_LIBGOTCHA): $(OBJ)
-	$(Q)$(CC) $(DEBUG_FLAGS) $(LFLAGS) -Wl,-soname,$(LIBGOTCHA).$(VERSION).$(RELEASE) -shared -fPIC -o $(LIBGOTCHA) $(OBJ) $(LIBS)
+	@echo "===>  CREATE SHARED LIB  $@"
+	$(Q)$(CC) $(DEBUG_FLAGS) $(LFLAGS) -Wl,-soname,$(LIBGOTCHA).$(VERSION).$(RELEASE),--no-undefined -shared -fPIC -o $(LIBGOTCHA) $(OBJ) $(LIBS)
 
 #PATTERN RULES
 $(BUILD_DIR)/%.o:  %.c
+	@echo "===>  COMPILE  $@"
+	@mkdir -p $(BUILD_DIR)
 	$(Q)$(CC) -c $(DEBUG_FLAGS) $(CFLAGS) $(CPPFLAGS) $< -o $@
 	$(Q)$(CC) $(DEBUG_FLAGS) $(CPPFLAGS) -MT $(@:.d=.o) -MM  $< > $(BUILD_DIR)/$*.d
 
@@ -95,8 +94,10 @@ endif
 .PHONY: clean distclean
 
 clean:
+	@echo "===>  CLEAN GOTCHA"
 	@rm -f $(TARGET) $(SHARED_LIBGOTCHA) $(STATIC_LIBGOTCHA) $(LIBGOTCHA).$(VERSION).$(RELEASE) $(LIBGOTCHA).$(VERSION)
 
 distclean: clean
+	@echo "===>  DIST CLEAN GOTCHA"
 	@rm -f $(TARGET) $(SHARED_LIBGOTCHA) $(STATIC_LIBGOTCHA) $(LIBGOTCHA).$(VERSION).$(RELEASE) $(LIBGOTCHA).$(VERSION)
 	@rm -rf $(BUILD_DIR)

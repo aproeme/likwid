@@ -38,6 +38,7 @@ test-$L-perf:
   tags:
     - testcluster
   before_script:
+    - rm -rf /tmp/$depend
     - cp -r $depend /tmp/$depend
     - cd /tmp/$depend
     - export PATH=/tmp/$depend/bin:\$PATH
@@ -46,6 +47,7 @@ test-$L-perf:
     - likwid-topology
     - likwid-pin -p
     - likwid-perfctr -i
+    - likwid-sysfeatures -a
   after_script:
     - rm -rf /tmp/$depend
 EOF
@@ -71,6 +73,7 @@ test-$L-daemon:
   tags:
     - testcluster
   before_script:
+    - rm -rf /tmp/$depend
     - cp -r $depend /tmp/$depend
     - cd /tmp/$depend
     - export PATH=/tmp/$depend/bin:\$PATH
@@ -79,6 +82,7 @@ test-$L-daemon:
     - likwid-topology
     - likwid-pin -p
     - likwid-perfctr -i
+    - likwid-sysfeatures -a
   after_script:
     - rm -rf /tmp/$depend
 EOF
