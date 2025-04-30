@@ -703,7 +703,9 @@ local function executeSlurm(wrapperscript, hostfile, env, nrNodes)
     opts["cpu-bind"] = "mask_cpu:"..table.concat(cpumasks, ",")
     --opts["cpus-per-task"] = string.format("%d", tpp)
     supported_types = _srun_get_mpi_types()
-    if supported_types["pmi2"] then
+    if supported_types["cray_shasta"] then
+        opts["mpi"] = "cray_shasta"
+    elseif supported_types["pmi2"] then
         opts["mpi"] = "pmi2"
     end
 
