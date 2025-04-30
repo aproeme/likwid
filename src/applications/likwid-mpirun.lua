@@ -144,7 +144,11 @@ local outfilename = string.format("%s/.output_%s_%%r_%%h.csv", pwd, pid)
 local filelist = {}
 
 local function mpirun_exit(exitcode)
-    if likwid.access(scriptfilename, "e") == 0 then os.remove(scriptfilename) end
+    if not debug then
+        if likwid.access(scriptfilename, "e") == 0 then
+            os.remove(scriptfilename)
+        end
+    end
     if likwid.access(hostfilename, "e") == 0 then os.remove(hostfilename) end
     for _, file in pairs(filelist) do
         if likwid.access(hostfilename, "e") == 0 then
