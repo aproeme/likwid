@@ -4,14 +4,26 @@ LIKWID_APP=likwid-bench
 HOST=$(shell hostname -s)
 
 
-all: clean marker localize_likwid
+all: clean plain marker localize_likwid
+
+plain:
+	@echo "===> Building non-instrumented likwid-bench"
+	@cp $(LIKWID_PATH)/config.mk $(LIKWID_PATH)/config.orig							
+	@sed -i -e s/'INSTRUMENT_BENCH = .*#'/'INSTRUMENT_BENCH = false#'/g $(LIKWID_PATH)/config.mk
+	@cd $(LIKWID_PATH) && make distclean >/dev/null && make >/dev/null 2>/dev/null
+	@cp $(LIKWID_BENCH_PATH)/$(LIKWID_APP) $(LIKWID_APP)-plain
+	@mv $(LIKWID_PATH)/config.orig $(LIKWID_PATH)/config.mk							
 
 marker:
 	@echo "===> Building instrumented likwid-bench"
+	@cp $(LIKWID_PATH)/config.mk $(LIKWID_PATH)/config.orig							
+	@cp $(LIKWID_PATH)/Makefile $(LIKWID_PATH)/Makefile.orig						
 	@sed -i -e s/'INSTRUMENT_BENCH = .*#'/'INSTRUMENT_BENCH = true#'/g $(LIKWID_PATH)/config.mk
 	@sed -i -e s/'CPPFLAGS := -DPAPI '/'CPPFLAGS := '/g $(LIKWID_PATH)/Makefile
 	@cd $(LIKWID_PATH) && make distclean >/dev/null && make >/dev/null 2>/dev/null
 	@cp $(LIKWID_BENCH_PATH)/$(LIKWID_APP) $(LIKWID_APP)-marker
+	@mv $(LIKWID_PATH)/config.orig $(LIKWID_PATH)/config.mk							
+	@mv $(LIKWID_PATH)/Makefile.orig $(LIKWID_PATH)/Makefile						
 
 papi:
 	@echo "===> Building instrumented likwid-bench using PAPI API"
