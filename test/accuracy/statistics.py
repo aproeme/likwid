@@ -414,12 +414,12 @@ def median_grouped(data, interval=1):
     except TypeError:
         # Mixed type. For now we just coerce to float.
         L = float(x) - float(interval)/2
-    print L
+    print(L)
     cf = data.index(x)  # Number of values below the median interval.
-    print cf
+    print(cf)
     # FIXME The following line could be more efficient for big lists.
     f = data.count(x)  # Number of data points in the median interval.
-    print f
+    print(f)
     return L + interval*(n/2 - cf)/f
 
 
