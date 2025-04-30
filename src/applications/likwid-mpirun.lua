@@ -85,6 +85,7 @@ local function usage()
     print_stdout("-f\t\t\t Force execution (and measurements). You can also use environment variable LIKWID_FORCE")
     print_stdout("-e, --env <key>=<value>\t Set environment variables for MPI processes")
     print_stdout("--mpiopts <str>\t Hand over options to underlying MPI. Please use proper quoting.")
+    print_stdout("--nocpubind\t\t If using Slurm, don't use --cpu-bind for task binding")
     print_stdout("")
     print_stdout("Processes are pinned to physical hardware threads first. For syntax questions see likwid-pin")
     print_stdout("")
@@ -117,6 +118,7 @@ local execList = {}
 local envsettings = {}
 local mpiopts = nil
 local debug = false
+local nocpubind = false
 local likwiddebug = false
 local use_marker = false
 local use_csv = false
@@ -700,7 +702,7 @@ local function executeSlurm(wrapperscript, hostfile, env, nrNodes)
         end
         table.insert(cpumasks, string.format("0x%s", s))
     end
-    opts["cpu-bind"] = "mask_cpu:"..table.concat(cpumasks, ",")
+    if not nocpubind then opts["cpu-bind"] = "mask_cpu:"..table.concat(cpumasks, ",") end
     --opts["cpus-per-task"] = string.format("%d", tpp)
     supported_types = _srun_get_mpi_types()
     if supported_types["cray_shasta"] then
@@ -2113,6 +2115,7 @@ local cmd_options = {"h","help", -- default options for help message
                      "dist:",      -- option to specifiy distance between two MPI processes
                      "o:","output:", -- option to specifiy an output file
                      "mpiopts:", -- option to specifiy MPI options forwarded to the underlying MPI
+		     "nocpubind", -- disable --cpu-bind for task binding if using Slurm
                      "nperdomain:","pin:","hostfile:","O","f", "stats"} -- other options
 
 for opt,arg in likwid.getopt(arg,  cmd_options) do
@@ -2133,6 +2136,8 @@ for opt,arg in likwid.getopt(arg,  cmd_options) do
         mpirun_exit(0)
     elseif opt == "d" or opt == "debug" then
         debug = true
+    elseif opt == "nocpubind" then
+        nocpubind = true
     elseif opt == "m" or opt == "marker" then
         use_marker = true
     elseif opt == "O" then
